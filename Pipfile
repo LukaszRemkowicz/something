@@ -5,9 +5,16 @@ name = "pypi"
 
 [packages]
 asgiref = "*"
-SQLAlchemy = "*"
-psycopg2 = "*"
 flask = "*"
+flask_sqlalchemy = "*"
+flask_jwt_extended = "*"
+flask_api = "*"
+gunicorn = "*"
+psycopg2 = "*"
+pydantic = "*"
+python-dotenv = "*"
+SQLAlchemy = "*"
+
 
 [dev-packages]
 black = "*"
@@ -20,6 +27,7 @@ pre-commit = "*"
 
 [requires]
 python_version = "3.10"
+
 
 [scripts]
 test = "pytest ."

@@ -11,6 +11,7 @@ RUN pip install --upgrade pip --no-cache-dir
 RUN apk update
 
 COPY Pipfile Pipfile.lock ./
+COPY game/entrypoint.sh /entrypoint.sh
 
 RUN apk add --update --no-cache postgresql-client jpeg-dev
 RUN apk add --update --no-cache --virtual .tmp-build-deps \
@@ -30,6 +31,13 @@ WORKDIR /core
 COPY . .
 WORKDIR /core/game
 
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
+
+
 FROM development as prod
 RUN adduser -u 5678 --disabled-password --gecos "" user && chown -R user /core/game
 USER user
+
+
+ENTRYPOINT [ "python" ]
+CMD ["gunicorn", "--bind", "0.0.0.0:8001", "--log-level", "info", "app:app"]

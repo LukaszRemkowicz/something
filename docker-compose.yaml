@@ -14,10 +14,14 @@ services:
         aliases:
           - app
     volumes:
-      - .:/game
+      - ./game:/core/game
       - postgres:/vol/postgres
     depends_on:
       - game_db
+    stdin_open: true
+    tty: true
+#    command: gunicorn --bind 0.0.0.0:8001 --log-level info --reload app:app
+
 
   game_db:
     image: postgres:alpine
