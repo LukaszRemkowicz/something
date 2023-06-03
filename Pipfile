@@ -1,0 +1,26 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+asgiref = "*"
+SQLAlchemy = "*"
+psycopg2 = "*"
+flask = "*"
+
+[dev-packages]
+black = "*"
+mypy = "*"
+flake8 = "*"
+pytest = "*"
+pytest-mock = "*"
+pre-commit = "*"
+
+
+[requires]
+python_version = "3.10"
+
+[scripts]
+test = "pytest ."
+precommit = "pre-commit run --all-files"
