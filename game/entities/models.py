@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 
 from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy()
+db: SQLAlchemy = SQLAlchemy()
 
 
 class BaseMixin:
@@ -35,13 +35,20 @@ class UserSession(db.Model, BaseMixin):
     score = Column(db.Integer)
     user_id = Column(db.Integer, ForeignKey('users.id'))
     user = relationship("User", backref="UserSession")
+    is_finished = Column(db.Boolean, default=False)
+    created_at = Column(db.DateTime, default=db.func.now())
+    ended_at = Column(db.DateTime, nullable=True)
 
 
-class Game(db.Model):
+class Game(db.Model, BaseMixin):
+    __tablename__ = 'game'
     id = db.Column(db.Integer, primary_key=True)
-    board = db.Column(db.String(9), nullable=True)
+    board = db.Column(db.PickleType, nullable=True)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'))
     current_player = db.Column(db.String(1), nullable=False, default='X')
     winner = db.Column(db.Integer, nullable=True)
+    session_id = db.Column(db.Integer, ForeignKey('session.id'))
 
-    def __init__(self):
-        self.board = ' ' * 9
+
+models_union = User | UserSession | Game
+

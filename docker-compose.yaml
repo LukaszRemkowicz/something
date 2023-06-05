@@ -15,7 +15,7 @@ services:
           - app
     volumes:
       - ./game:/core/game
-      - postgres:/vol/postgres
+      - game_postgres:/vol/postgres
     depends_on:
       - game_db
     stdin_open: true
@@ -61,7 +61,6 @@ services:
 volumes:
   postgres:
   game_postgres:
-    external: true
     name: game_postgres
 
 networks:
