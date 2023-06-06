@@ -1,5 +1,6 @@
 import os
 import secrets
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseSettings, SecretStr
@@ -46,3 +47,10 @@ def get_db_url() -> str:
     login_and_password: str = f'{settings.db.username}:{settings.db.password.get_secret_value()}'
     url: str = f'postgresql+psycopg2://{login_and_password}@{settings.db.host}/{settings.db.name}'
     return url
+
+
+class PlayCredits(Enum):
+    """Play credits enum"""
+
+    WIN = 4
+    PLAY = 3

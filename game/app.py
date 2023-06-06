@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Tuple
+from typing import Tuple, Optional
 
 from flask import Flask, jsonify, Response, request
 from flask_jwt_extended import create_access_token, JWTManager, jwt_required, get_jwt_identity
@@ -79,9 +79,9 @@ def account_update() -> Tuple[Response, int]:
     return jsonify(response), status_code
 
 
-@app.route('/game/start', methods=['GET'])
+@app.route('/session', methods=['GET'])
 @jwt_required()
-def game() -> Tuple[Response, int]:
+def session() -> Tuple[Response, int]:
     """Starts game session and return session id."""
     current_user_id: int = get_jwt_identity()
     response: str
@@ -90,13 +90,25 @@ def game() -> Tuple[Response, int]:
     return jsonify(response), status_code
 
 
-@app.route('/game/plays/<int:session_id>', methods=['GET', "POST"])
+@app.route('/session/<int:session_id>/game', methods=['GET'])
 @jwt_required()
-def play_start(session_id: int) -> Tuple[Response, int]:
+def new_game(session_id: int) -> Tuple[Response, int]:
+    """Create new board for session. Return board id."""
+    current_user_id: int = get_jwt_identity()
+    response: str
+    status_code: int
+    response, status_code = player.create_new_game(user_id=current_user_id, session_id=session_id)
+    return jsonify(response), status_code
+
+
+@app.route('/session/<int:session_id>/game/<int:board_id>', methods=['GET', "POST"])
+@jwt_required()
+def play_start(session_id: int, board_id: int) -> Tuple[Response, int]:
     """Starts game session and return session id."""
     current_user_id: int = get_jwt_identity()
     response: str
     status_code: int
+    data: Optional[dict] = request.json
 
     session_status: SessionStatus = player.check_session_status(
         session_id=session_id, user_id=current_user_id
@@ -106,7 +118,22 @@ def play_start(session_id: int) -> Tuple[Response, int]:
         return jsonify(session_status.session_data), session_status.status_code
 
     if request.method == 'POST':
-        response, status_code = player.lets_play_POST(session_id=session_id, user_id=current_user_id)
+        is_finished, winner = player.check_game_status(session_id=session_id, user_id=current_user_id)
+        if is_finished:
+            return jsonify({'winner': winner}), status.HTTP_200_OK
+
+        response, status_code = player.lets_play_POST(
+            session_id=session_id,
+            user_id=current_user_id,
+            data=data,
+            game_id=board_id
+        )
+        # if status_code != status.HTTP_200_OK:
+        #     return jsonify(response), status_code
+        # response, status_code = player.random_move(session_id=session_id, user_id=current_user_id)
+        # is_finished, winner = player.check_game_status(session_id=session_id, user_id=current_user_id)
+        # # if is_finished:
+        # #     return jsonify({'winner': winner}), status.HTTP_200_OK
         return jsonify(response), status_code
 
     if request.method == 'GET':

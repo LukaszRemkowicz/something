@@ -12,3 +12,7 @@ class ImproperlyConfigured(CustomBaseException):
 class ShouldBeCalledOnInstanceException(CustomBaseException):
     default_message = "This method should be called on instance of class"
 
+
+class NoGameFoundException(CustomBaseException):
+    default_message = "No game found in DB"
+

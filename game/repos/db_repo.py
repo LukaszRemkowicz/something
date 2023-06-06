@@ -1,8 +1,10 @@
 import abc
 from typing import Union, Type, Optional, Iterable
 
-from entities.entites import UserListPydantic, UserPydantic, UserSessionPydantic, UserSessionListPydantic
+from entities.entites import UserListPydantic, UserPydantic, UserSessionPydantic, UserSessionListPydantic, GamePydantic, \
+    GameListPydantic
 from entities.models import Game, UserSession, User, db
+from entities.types import SessionStatusStates
 
 ModelType = Union[User, UserSession, Game]
 
@@ -83,7 +85,10 @@ class UserSessionDBRepo(BaseRepo):
 
     def create(self, **kwargs) -> UserSessionPydantic:
         self.model.create(**kwargs)
-        user_session: Optional[UserSessionListPydantic] = self.filter(**kwargs)
+        user_session: Optional[UserSessionListPydantic] = self.filter(
+            status=SessionStatusStates.ACTIVE.value,
+            **kwargs
+        )
         return UserSessionPydantic(**user_session.__root__[0].__dict__)
 
     def save(self, obj):
@@ -109,25 +114,34 @@ class UserSessionDBRepo(BaseRepo):
 class GameDBRepo(BaseRepo):
     model = Game
 
-    def filter(self, **kwargs) -> Optional[UserSessionListPydantic]:
-        filter_res: Iterable | None = self.model.query.filter_by(**kwargs).first()
-        # if filter_res:
-        #     new_res: UserSessionListPydantic = UserSessionListPydantic(
-        #         __root__=[obj.__dict__ for obj in filter_res]
-        #     )
-        #     return new_res
-        return filter_res
+    def filter(self, **kwargs) -> Optional[GameListPydantic]:
+        query = self.model.query
+        for key, val in kwargs.items():
+            if "__in" in key:
+                field = key.split("__")[0]
+                query = query.filter(getattr(self.model, field).in_(val))
+            else:
+                query = query.filter(getattr(self.model, key) == val)
 
-    def create(self, **kwargs) -> UserSessionPydantic:
+        filter_res: list = query.all()
+        if filter_res:
+            new_res: GameListPydantic = GameListPydantic(
+                __root__=[obj.__dict__ for obj in filter_res]
+            )
+            return new_res
+        return None
+
+    def create(self, **kwargs) -> GamePydantic:
         self.model.create(**kwargs)
-        # user_session: Optional[UserSessionListPydantic] = self.filter(**kwargs)
-        return "ok"
+        game: Optional[GameListPydantic] = self.filter(**kwargs)
+        return GamePydantic(**game.__root__[0].__dict__)
 
     def save(self, obj):
         return obj.save()
 
-    def update_fields(self, obj: UserSessionPydantic, **kwargs) -> UserSessionPydantic | None:
-        instance: UserSession | None = self.model.query.filter_by(id=obj.id).first()
+    def update_fields(self, obj: GamePydantic, **kwargs) -> GamePydantic | None:
+        instance: Game | None = self.model.query.filter_by(id=obj.id).first()
+
         if instance:
             for key, val in kwargs.items():
                 try:
@@ -136,7 +150,7 @@ class GameDBRepo(BaseRepo):
                     raise error
             db.session.commit()
             db.session.refresh(instance)
-            return UserSessionPydantic(**instance.__dict__)
+            return GamePydantic(**instance.__dict__)
         return None
 
     def all(self):

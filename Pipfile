@@ -14,7 +14,7 @@ psycopg2 = "*"
 pydantic = "*"
 python-dotenv = "*"
 SQLAlchemy = "*"
-
+sqlalchemy_json = "*"
 
 [dev-packages]
 black = "*"
