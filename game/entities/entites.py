@@ -27,10 +27,12 @@ class UserSessionListPydantic(BaseModel):
 
 class GamePydantic(BaseModel):
     id: int
-    board: List
+    board: dict
     user_id: int
-    current_player: str
+    symbol: str
     winner: Optional[int]
+    session_id: int
+    status: str
 
 
 class GameListPydantic(BaseModel):
