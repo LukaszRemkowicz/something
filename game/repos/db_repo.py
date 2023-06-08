@@ -39,9 +39,11 @@ class UserDBRepo(BaseRepo):
     model = User
 
     def filter(self, **kwargs) -> Optional[UserListPydantic]:
-        filter_res: Iterable | None = self.model.query.filter_by(**kwargs)
+        filter_res: Iterable | None = self.model.filter_by(**kwargs)
         if filter_res:
-            new_res: UserListPydantic = UserListPydantic(__root__=[obj.__dict__ for obj in filter_res])
+            new_res: UserListPydantic = UserListPydantic(__root__=[
+                obj.__dict__ for obj in filter_res if obj]
+            )
             return new_res
         return None
 
@@ -75,7 +77,7 @@ class UserSessionDBRepo(BaseRepo):
     model = UserSession
 
     def filter(self, **kwargs) -> Optional[UserSessionListPydantic]:
-        filter_res: Iterable | None = self.model.query.filter_by(**kwargs)
+        filter_res: Iterable | None = self.model.filter_by(**kwargs)
         if filter_res:
             new_res: UserSessionListPydantic = UserSessionListPydantic(
                 __root__=[obj.__dict__ for obj in filter_res]
