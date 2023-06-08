@@ -16,9 +16,9 @@ class UserListPydantic(BaseModel):
 
 class UserSessionPydantic(BaseModel):
     id: int
-    score: Optional[str]
-    user_id: str
-    is_finished: bool = False
+    score: Optional[int]
+    user_id: int
+    status: str
 
 
 class UserSessionListPydantic(BaseModel):

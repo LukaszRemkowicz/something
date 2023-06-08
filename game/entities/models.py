@@ -26,6 +26,10 @@ class BaseMixin:
     def save(cls):
         db.session.commit()
 
+    @classmethod
+    def filter_by(cls, **kwargs):
+        return cls.query.filter_by(**kwargs)  # noqa
+
 
 class User(db.Model, BaseMixin):
     __tablename__ = 'users'
