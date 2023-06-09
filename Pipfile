@@ -25,6 +25,7 @@ pytest = "*"
 pytest-mock = "*"
 pytest-factoryboy = "*"
 pre-commit = "*"
+isort = "*"
 
 
 [requires]

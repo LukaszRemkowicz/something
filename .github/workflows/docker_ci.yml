@@ -33,3 +33,11 @@ jobs:
       - name: tests
         run:  |
           pipenv run pytest
+
+      - name: black
+        run: |
+          pipenv run black --check .
+
+      - name: flake8
+        run: |
+          pipenv run flake8 .

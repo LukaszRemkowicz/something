@@ -12,7 +12,7 @@ from tests.factories import UserFactory
 def client():
     with flask_app.test_client() as client:
         with flask_app.app_context():
-            flask_app.config['DEBUG'] = True
+            flask_app.config["DEBUG"] = True
             yield client
 
 
@@ -31,4 +31,7 @@ def jwt_token_headers(client: FlaskClient, mocker: "MockFixture"):
 @pytest.fixture
 def mock_session_status_response(mocker: "MockFixture"):
     session_status: SessionStatus = SessionStatus(True, {"test": "test"}, 200)
-    mocker.patch("use_cases.use_case.UserUseCase.check_session_status", return_value=session_status)
+    mocker.patch(
+        "use_cases.use_case.UserUseCase.check_session_status",
+        return_value=session_status,
+    )

@@ -1,16 +1,17 @@
 import random
 from datetime import datetime
-from typing import Type, Tuple, List, Optional
+from typing import List, Optional, Tuple, Type
 
 from entities.entites import (
+    GameListPydantic,
+    GamePydantic,
     UserListPydantic,
     UserPydantic,
+    UserSessionListPydantic,
     UserSessionPydantic,
-    GamePydantic,
-    UserSessionListPydantic, GameListPydantic,
 )
-from entities.types import SessionStatus, SessionStatusStates, GameStatus
-from repos.db_repo import UserDBRepo, UserSessionDBRepo, GameDBRepo
+from entities.types import GameStatus, SessionStatus, SessionStatusStates
+from repos.db_repo import GameDBRepo, UserDBRepo, UserSessionDBRepo
 from repos.managers import GridManager
 from settings import PlayCredits
 from utils.exceptions import NoGameFoundException
@@ -18,10 +19,10 @@ from utils.exceptions import NoGameFoundException
 
 class UserUseCase:
     def __init__(
-            self,
-            db_repo: Type[UserDBRepo],
-            user_session_repo: Type[UserSessionDBRepo],
-            game_db_repo: Type[GameDBRepo],
+        self,
+        db_repo: Type[UserDBRepo],
+        user_session_repo: Type[UserSessionDBRepo],
+        game_db_repo: Type[GameDBRepo],
     ):
         self.db_repo: UserDBRepo = db_repo()
         self.user_session_repo: UserSessionDBRepo = user_session_repo()
@@ -64,8 +65,8 @@ class UserUseCase:
     def start_session(self, user_id: int) -> Tuple[dict, int]:
         """
         Start new game session. User shouldn't have more than one active session,
-        that's why we check if there is an active one. Expected is return of active session
-        or create new one. With session, we create new game.
+        that's why we check if there is an active one. Expected is return of
+        active session or create new one. With session, we create new game.
         """
         user: UserPydantic | None = self.get_user(id=user_id)
 
@@ -81,7 +82,18 @@ class UserUseCase:
             games: GameListPydantic | None = self.game_db_repo.filter(
                 session_id=session_detail.get("id"), user_id=user_id
             )
-            session_detail.update({"games": [game.dict(exclude={"board", }) for game in games.__root__]})
+            session_detail.update(
+                {
+                    "games": [
+                        game.dict(
+                            exclude={
+                                "board",
+                            }
+                        )
+                        for game in games.__root__
+                    ]
+                }
+            )
             return {"error": message, "session_detail": session_detail}, 400
 
         new_session: UserSessionPydantic = self.user_session_repo.create(
@@ -92,7 +104,7 @@ class UserUseCase:
             user_id=user.id,
             session_id=new_session.id,
             board={"new_board": new_board},
-            status=GameStatus.IN_PROGRESS.value
+            status=GameStatus.IN_PROGRESS.value,
         )
 
         user.credits -= PlayCredits.PLAY.value
@@ -123,14 +135,14 @@ class UserUseCase:
         user_game: GameListPydantic | None = self.game_db_repo.filter(
             user_id=user_id,
             session_id=session_id,
-            status__in=[GameStatus.IN_PROGRESS.value, GameStatus.NOT_STARTED.value]
+            status__in=[GameStatus.IN_PROGRESS.value, GameStatus.NOT_STARTED.value],
         )
         if user_game and user_game.__root__:
             return {
-                       "error": f"Game already started",
-                       "game_id": user_game.__root__[0].id,
-                       "session_id": session_id
-                   }, 400
+                "error": "Game already started",
+                "game_id": user_game.__root__[0].id,
+                "session_id": session_id,
+            }, 400
         if session_obj.status == SessionStatusStates.FINISHED.value:
             return {"error": "Session already finished"}, 400
 
@@ -147,12 +159,18 @@ class UserUseCase:
             user_id=user.id,
             session_id=session_obj.id,
             board={"new_board": new_board},
-            status=GameStatus.IN_PROGRESS.value
+            status=GameStatus.IN_PROGRESS.value,
         )
-        return {"game_details": game.dict(exclude={"board", })}, 200
+        return {
+            "game_details": game.dict(
+                exclude={
+                    "board",
+                }
+            )
+        }, 200
 
     def get_session_object(
-            self, session_id: int, user_id: int
+        self, session_id: int, user_id: int
     ) -> UserSessionListPydantic | None:
         session: UserSessionListPydantic | None = self.user_session_repo.filter(
             id=session_id, user_id=user_id
@@ -175,9 +193,7 @@ class UserUseCase:
         return [row, col], errors
 
     def _player_play(
-            self,
-            data: dict,
-            user_game: GamePydantic
+        self, data: dict, user_game: GamePydantic
     ) -> Tuple[List[List[str | None]], int] | Tuple[dict, int]:
         row = data.get("row")
         col = data.get("col")
@@ -193,10 +209,10 @@ class UserUseCase:
         user_board: GridManager = self.grid_manager(board_list)
         if not user_board.is_move_possible(row - 1, col - 1):
             return {
-                       "error": "Invalid move. Field is taken",
-                       "actual_board": user_board.get_board(),
-                       "player_sign": user_game.symbol,
-                   }, 400
+                "error": "Invalid move. Field is taken",
+                "actual_board": user_board.get_board(),
+                "player_sign": user_game.symbol,
+            }, 400
 
         user_board.make_move(row - 1, col - 1, user_game.symbol)
         self.game_db_repo.update_fields(
@@ -205,10 +221,7 @@ class UserUseCase:
         return user_board.get_board(), 200
 
     def random_play(
-            self,
-            user_game: GamePydantic,
-            session_id: int,
-            user_id: int
+        self, user_game: GamePydantic, session_id: int, user_id: int
     ) -> Tuple[List[List[str | None]], int] | Tuple[dict, int]:
         """Make random play."""
         user: UserPydantic | None = self.get_user(id=user_id)
@@ -233,43 +246,19 @@ class UserUseCase:
         )
 
         return {
-                   "actual_board": user_board.get_board(),
-                   "player_sign": user_game.symbol,
-                   "credits": user.credits
-               }, 200
+            "actual_board": user_board.get_board(),
+            "player_sign": user_game.symbol,
+            "credits": user.credits,
+        }, 200
 
     def lets_play_POST(self, session_id: int, user_id: int, game_id: int, data: dict):
         user_game: GameListPydantic | None = self.game_db_repo.filter(
-            user_id=user_id,
-            session_id=session_id,
-            id=game_id
+            user_id=user_id, session_id=session_id, id=game_id
         )
         if not user_game or not user_game.__root__:
             return {"message": "Game not found"}, 404
 
         user_game_obj: GamePydantic = user_game.__root__[0]
-
-        # user: UserPydantic | None = self.get_user(id=user_id)
-        # user_session: UserSessionPydantic = self.user_session_repo.create(
-        #     user_id=user.id
-        # )
-
-        # # check user credits. If not enough return error
-        # # TODO dodac logike, ze raz odjete kredyty juz nie sa odejmowane
-        # if not user_game and user.credits < PlayCredits.PLAY.value:
-        #     return {"error": "Not enough credits"}, 400
-        # user.credits -= PlayCredits.PLAY.value
-        # self.db_repo.update_fields(obj=user, credits=user.credits)
-
-        # # start new board and save it to db
-        # # TODO dodac logike nie tworzenia nowej planszy, jezeli poprzednia rozgrywka sie nie zakonczyla
-        # new_board: list = self.grid_manager.initialize_grid()
-        # self.game_db_repo.create(
-        #     user_id=user.id,
-        #     session_id=user_session.id,
-        #     board={"new_board": new_board},
-        #     status=GameStatus.IN_PROGRESS.value
-        # )
 
         response: Tuple[List[List[str | None]], int] | Tuple[dict, int]
         status_code: int
@@ -279,14 +268,18 @@ class UserUseCase:
         if status_code != 200:
             return response, status_code
 
-        is_finished, winner = self.check_game_status(session_id, user_id, game_id=game_id)
+        is_finished, winner = self.check_game_status(
+            session_id, user_id, game_id=game_id
+        )
         if is_finished:
             return winner, 200
 
         # random play
         response, status_code = self.random_play(user_game_obj, session_id, user_id)
 
-        is_finished, winner = self.check_game_status(session_id, user_id, game_id=game_id)
+        is_finished, winner = self.check_game_status(
+            session_id, user_id, game_id=game_id
+        )
         if is_finished:
             return winner, 200
 
@@ -318,26 +311,33 @@ class UserUseCase:
             "status": "game is in progress",
             "actual_board": user_board.get_board(),
             "credits": user.credits,
-            "user_sign": user_game_obj.symbol
+            "user_sign": user_game_obj.symbol,
         }
         winner_res: Optional[bool]
 
         if is_finished:
             if winner == user_game_obj.symbol:
-
                 user_game_obj.winner = user_game_obj.user_id
-                if user and user_game.__root__[0] and user_game_obj.status != GameStatus.FINISHED.value:
+                if (
+                    user
+                    and user_game.__root__[0]
+                    and user_game_obj.status != GameStatus.FINISHED.value
+                ):
                     user.credits += PlayCredits.WIN.value
                     self.db_repo.update_fields(obj=user, credits=user.credits)
-                    session: UserSessionListPydantic = self.get_session_obj(user_id=user_id, session_id=session_id)
+                    session: UserSessionListPydantic = self.get_session_obj(
+                        user_id=user_id, session_id=session_id
+                    )
                     if session_obj := session.__root__[0]:
-                        self.user_session_repo.update_fields(session_obj, score=session_obj.score + 1)
+                        self.user_session_repo.update_fields(
+                            session_obj, score=session_obj.score + 1
+                        )
 
                 message = {
                     "status": "You won",
                     "actual_board": user_board.get_board(),
                     "credits": user.credits,
-                    "user_sign": user_game_obj.symbol
+                    "user_sign": user_game_obj.symbol,
                 }
                 winner_res = True
 
@@ -346,7 +346,7 @@ class UserUseCase:
                     "status": "There is no winner",
                     "actual_board": user_board.get_board(),
                     "credits": user.credits,
-                    "user_sign": user_game_obj.symbol
+                    "user_sign": user_game_obj.symbol,
                 }
                 winner_res = False
 
@@ -357,7 +357,7 @@ class UserUseCase:
                     "status": "You lost",
                     "actual_board": user_board.get_board(),
                     "credits": user.credits,
-                    "user_sign": user_game_obj.symbol
+                    "user_sign": user_game_obj.symbol,
                 }
                 winner_res = None
             if user_game_obj.status != GameStatus.FINISHED.value:
@@ -371,18 +371,19 @@ class UserUseCase:
         return is_finished, message
 
     def get_session_obj(self, user_id: int, session_id: int) -> UserSessionListPydantic:
-        return self.get_session_object(
-            user_id=user_id, session_id=session_id
-        )
+        return self.get_session_object(user_id=user_id, session_id=session_id)
 
     def update_session_status(self, session_id: int, user_id: int):
         """
-        Update session status to finished if user lost and there is not enough credits in account.
-        Due to fact, that play game cost 3 credits, if user lost,
-        he will not be able to play again (he won't earn additional credits).
+        Update session status to finished if user lost
+        and there is not enough credits in account. Due to fact,
+        that play game cost 3 credits, if user lost, he will not be able to play again
+        (he won't earn additional credits).
         """
         user: UserPydantic | None = self.get_user(id=user_id)
-        session: UserSessionListPydantic = self.get_session_obj(user_id=user_id, session_id=session_id)
+        session: UserSessionListPydantic = self.get_session_obj(
+            user_id=user_id, session_id=session_id
+        )
 
         self.user_session_repo.update_fields(
             obj=session.__root__[0], status=SessionStatusStates.FINISHED.value
@@ -390,7 +391,9 @@ class UserUseCase:
         if user.credits < PlayCredits.PLAY.value:
             session.__root__[0].status = SessionStatusStates.FINISHED.value
             self.user_session_repo.update_fields(
-                obj=session.__root__[0], status=SessionStatusStates.FINISHED.value, ended_at=datetime.now()
+                obj=session.__root__[0],
+                status=SessionStatusStates.FINISHED.value,
+                ended_at=datetime.now(),
             )
 
     def lets_play_GET(self, user_id: int, session_id: int, game_id: int):
@@ -403,12 +406,12 @@ class UserUseCase:
 
         board_list: list = list(game_instance.__root__[0].board.values())[0]
         result: dict = {
-           "actual_board": self.grid_manager(board_list).get_board(),
-           "player_sign": game_instance.__root__[0].symbol,
-           "game": game_instance.__root__[0].id,
-           "session": game_instance.__root__[0].session_id,
-           "credits": user.credits
-       }
+            "actual_board": self.grid_manager(board_list).get_board(),
+            "player_sign": game_instance.__root__[0].symbol,
+            "game": game_instance.__root__[0].id,
+            "session": game_instance.__root__[0].session_id,
+            "credits": user.credits,
+        }
         return result, 200
 
     def check_session_status(self, session_id: int, user_id: int):
@@ -420,8 +423,9 @@ class UserUseCase:
                 False, {"message": "Game session not found for requested user"}, 404
             )
         if (
-                session and session.__root__
-                and session.__root__[0].status == SessionStatusStates.FINISHED.value
+            session
+            and session.__root__
+            and session.__root__[0].status == SessionStatusStates.FINISHED.value
         ):
             return SessionStatus(False, {"message": "Game session is finished"}, 400)
 

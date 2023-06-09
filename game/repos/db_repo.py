@@ -1,9 +1,15 @@
 import abc
-from typing import Union, Type, Optional, Iterable, List
+from typing import Iterable, List, Optional, Type, Union
 
-from entities.entites import UserListPydantic, UserPydantic, UserSessionPydantic, UserSessionListPydantic, GamePydantic, \
-    GameListPydantic
-from entities.models import Game, UserSession, User, db
+from entities.entites import (
+    GameListPydantic,
+    GamePydantic,
+    UserListPydantic,
+    UserPydantic,
+    UserSessionListPydantic,
+    UserSessionPydantic,
+)
+from entities.models import Game, User, UserSession, db
 from entities.types import SessionStatusStates
 
 ModelType = Union[User, UserSession, Game]
@@ -41,8 +47,8 @@ class UserDBRepo(BaseRepo):
     def filter(self, **kwargs) -> Optional[UserListPydantic]:
         filter_res: Iterable | None = self.model.filter_by(**kwargs)
         if filter_res:
-            new_res: UserListPydantic = UserListPydantic(__root__=[
-                obj.__dict__ for obj in filter_res if obj]
+            new_res: UserListPydantic = UserListPydantic(
+                __root__=[obj.__dict__ for obj in filter_res if obj]
             )
             return new_res
         return None
@@ -88,15 +94,16 @@ class UserSessionDBRepo(BaseRepo):
     def create(self, **kwargs) -> UserSessionPydantic:
         self.model.create(**kwargs)
         user_session: Optional[UserSessionListPydantic] = self.filter(
-            status=SessionStatusStates.ACTIVE.value,
-            **kwargs
+            status=SessionStatusStates.ACTIVE.value, **kwargs
         )
         return UserSessionPydantic(**user_session.__root__[0].__dict__)
 
     def save(self, obj):
         return obj.save()
 
-    def update_fields(self, obj: UserSessionPydantic, **kwargs) -> UserSessionPydantic | None:
+    def update_fields(
+        self, obj: UserSessionPydantic, **kwargs
+    ) -> UserSessionPydantic | None:
         instance: UserSession | None = self.model.query.filter_by(id=obj.id).first()
         if instance:
             for key, val in kwargs.items():
@@ -111,7 +118,9 @@ class UserSessionDBRepo(BaseRepo):
 
     def all(self, desc=False) -> Iterable:
         if desc:
-            filter_res: Iterable = self.model.query.order_by(self.model.ended_at.desc()).all()
+            filter_res: Iterable = self.model.query.order_by(
+                self.model.ended_at.desc()
+            ).all()
         else:
             filter_res: Iterable = self.model.query.all()
         return filter_res
@@ -120,9 +129,9 @@ class UserSessionDBRepo(BaseRepo):
     def time_played(start_time, end_time):
         if end_time:
             minutes: float = int((end_time - start_time).total_seconds() / 60)
-            result: str = f'{minutes} minutes'
+            result: str = f"{minutes} minutes"
             if not minutes:
-                result: str = f'{int((end_time - start_time).total_seconds())} seconds'
+                result: str = f"{int((end_time - start_time).total_seconds())} seconds"
             return result
         else:
             return "In progress"
@@ -134,10 +143,12 @@ class UserSessionDBRepo(BaseRepo):
     def get_score_data(self):
         data: List[dict] = [
             {
-                "date": obj.ended_at.strftime("%d-%m-%Y") if obj.ended_at else "Unknown",
+                "date": obj.ended_at.strftime("%d-%m-%Y")
+                if obj.ended_at
+                else "Unknown",
                 "score": obj.score,
                 "user": self.anonymize_email(obj.user.email),
-                "time_played": self.time_played(obj.created_at, obj.ended_at)
+                "time_played": self.time_played(obj.created_at, obj.ended_at),
             }
             for obj in self.all(desc=True)
         ]
