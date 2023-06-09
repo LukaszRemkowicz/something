@@ -44,8 +44,11 @@ settings = Settings()
 
 
 def get_db_url() -> str:
-    login_and_password: str = f'{settings.db.username}:{settings.db.password.get_secret_value()}'
-    url: str = f'postgresql+psycopg2://{login_and_password}@{settings.db.host}/{settings.db.name}'
+    login_and_password: str = (
+        f"{settings.db.username}:{settings.db.password.get_secret_value()}"
+    )
+    server_endpoint: str = f"{login_and_password}@{settings.db.host}/{settings.db.name}"
+    url: str = f"postgresql+psycopg2://{server_endpoint}"
     return url
 
 

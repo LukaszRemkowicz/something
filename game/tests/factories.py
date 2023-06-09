@@ -1,9 +1,9 @@
-from typing import List, Dict
+from typing import Dict, List
 
 import factory
 from pytest_factoryboy import register
 
-from entities.models import User, UserSession, Game
+from entities.models import Game, User, UserSession
 from entities.types import SessionStatusStates
 
 

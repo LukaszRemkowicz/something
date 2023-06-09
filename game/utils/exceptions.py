@@ -15,4 +15,3 @@ class ShouldBeCalledOnInstanceException(CustomBaseException):
 
 class NoGameFoundException(CustomBaseException):
     default_message = "No game found in DB"
-

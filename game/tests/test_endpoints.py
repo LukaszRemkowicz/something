@@ -5,10 +5,10 @@ from flask import Response
 from flask.testing import FlaskClient
 from pytest_mock import MockFixture
 
-from entities.entites import GameListPydantic, UserSessionPydantic, GamePydantic, UserSessionListPydantic
-from entities.types import SessionStatusStates, GameStatus, SessionStatus
+from entities.entites import GameListPydantic, GamePydantic, UserSessionPydantic
+from entities.types import GameStatus, SessionStatus, SessionStatusStates
 from settings import PlayCredits
-from tests.factories import UserFactory, UserSessionFactory, GameFactory
+from tests.factories import GameFactory, UserFactory, UserSessionFactory
 from tests.utils import user2pydantic
 from use_cases.use_case import UserUseCase
 
@@ -264,7 +264,9 @@ def test_session_create(
 
     mocker.patch("entities.models.User.filter_by", return_value=[user])
     mocker.patch("entities.models.UserSession.filter_by", return_value=None)
-    mocker.patch("repos.db_repo.UserSessionDBRepo.create", return_value=session_pydantic)
+    mocker.patch(
+        "repos.db_repo.UserSessionDBRepo.create", return_value=session_pydantic
+    )
     mocker.patch("repos.db_repo.GameDBRepo.create", return_value=game_pydantic)
 
     user_updated: UserFactory = deepcopy(user)
@@ -310,7 +312,9 @@ def test_new_game_endpoint_no_active_session(
     mocker.patch("entities.models.User.filter_by", return_value=[user])
     mocker.patch("entities.models.UserSession.filter_by", return_value=None)
 
-    response: Response = client.get(f"/session/1/game", headers=jwt_token_headers)  # noqa
+    response: Response = client.get(  # noqa
+        "/session/1/game", headers=jwt_token_headers
+    )
     data_response: dict = response.json
 
     assert response.status_code == 400
@@ -329,9 +333,7 @@ def test_new_game_endpoint_game_already_started(
         status=SessionStatusStates.ACTIVE.value, user_id=user.id
     )
     game: GameFactory = GameFactory.create(
-        session_id=user_session.id,
-        user_id=user.id,
-        status=GameStatus.IN_PROGRESS.value
+        session_id=user_session.id, user_id=user.id, status=GameStatus.IN_PROGRESS.value
     )
     game_pydantic: GameListPydantic = GameListPydantic(__root__=[game.__dict__])
 
@@ -339,12 +341,13 @@ def test_new_game_endpoint_game_already_started(
     mocker.patch("entities.models.UserSession.filter_by", return_value=[user_session])
     mocker.patch("entities.models.User.filter_by", return_value=[user])
 
-
-    response: Response = client.get(f"/session/1/game", headers=jwt_token_headers)  # noqa
+    response: Response = client.get(  # noqa
+        "/session/1/game", headers=jwt_token_headers
+    )
     data_response: dict = response.json
 
     assert response.status_code == 400
-    assert data_response.get("error") == f"Game already started"
+    assert data_response.get("error") == "Game already started"
     assert data_response.get("game_id") == game.id
     assert data_response.get("session_id") == user_session.id
 
@@ -365,11 +368,13 @@ def test_new_game_endpoint_session_finished(
     mocker.patch("entities.models.UserSession.filter_by", return_value=[user_session])
     mocker.patch("entities.models.User.filter_by", return_value=[user])
 
-    response: Response = client.get(f"/session/1/game", headers=jwt_token_headers)  # noqa
+    response: Response = client.get(  # noqa
+        "/session/1/game", headers=jwt_token_headers
+    )
     data_response: dict = response.json
 
     assert response.status_code == 400
-    assert data_response.get("error") == f"Session already finished"
+    assert data_response.get("error") == "Session already finished"
 
 
 def test_new_game_endpoint_no_credits(
@@ -387,9 +392,13 @@ def test_new_game_endpoint_no_credits(
     mocker.patch("repos.db_repo.GameDBRepo.filter", return_value=None)
     mocker.patch("entities.models.UserSession.filter_by", return_value=[user_session])
     mocker.patch("entities.models.User.filter_by", return_value=[user])
-    mocker.patch("use_cases.use_case.UserUseCase.update_session_status", return_value=[user])
+    mocker.patch(
+        "use_cases.use_case.UserUseCase.update_session_status", return_value=[user]
+    )
 
-    response: Response = client.get(f"/session/1/game", headers=jwt_token_headers)  # noqa
+    response: Response = client.get(  # noqa
+        "/session/1/game", headers=jwt_token_headers
+    )
     data_response: dict = response.json
 
     assert response.status_code == 400
@@ -409,19 +418,21 @@ def test_new_game_endpoint_valid_game(
     )
 
     game: GameFactory = GameFactory.create(
-        session_id=user_session.id,
-        user_id=user.id,
-        status=GameStatus.IN_PROGRESS.value
+        session_id=user_session.id, user_id=user.id, status=GameStatus.IN_PROGRESS.value
     )
     game_pydantic: GamePydantic = GamePydantic(**game.__dict__)
 
     mocker.patch("repos.db_repo.GameDBRepo.filter", return_value=None)
     mocker.patch("entities.models.UserSession.filter_by", return_value=[user_session])
     mocker.patch("entities.models.User.filter_by", return_value=[user])
-    mocker.patch("repos.db_repo.UserDBRepo.update_fields", return_value=user2pydantic(user))
+    mocker.patch(
+        "repos.db_repo.UserDBRepo.update_fields", return_value=user2pydantic(user)
+    )
     mocker.patch("repos.db_repo.GameDBRepo.create", return_value=game_pydantic)
 
-    response: Response = client.get(f"/session/1/game", headers=jwt_token_headers)  # noqa
+    response: Response = client.get(  # noqa
+        "/session/1/game", headers=jwt_token_headers
+    )
     data_response: dict = response.json
 
     assert response.status_code == 200
@@ -451,15 +462,20 @@ def test_play_start_endpoint_game_not_found2(
 ) -> None:
     """Test for play start endpoint. with session status not active"""
     session_status: SessionStatus = SessionStatus(False, {"test": "test"}, 200)
-    mocker.patch("use_cases.use_case.UserUseCase.check_session_status", return_value=session_status)
-    response: Response = client.get(f"/session/1/game/1", json={}, headers=jwt_token_headers)  # noqa
+    mocker.patch(
+        "use_cases.use_case.UserUseCase.check_session_status",
+        return_value=session_status,
+    )
+    response: Response = client.get(  # noqa
+        "/session/1/game/1", json={}, headers=jwt_token_headers
+    )
 
     assert response.status_code == session_status.status_code
     assert response.json == session_status.session_data
 
 
 def test_play_start_endpoint_GET(
-        client: FlaskClient, jwt_token_headers: dict, mocker: "MockFixture"
+    client: FlaskClient, jwt_token_headers: dict, mocker: "MockFixture"
 ) -> None:
     """Test for play start endpoint. GET method should return board details"""
     user: UserFactory = UserFactory.create()
@@ -467,28 +483,39 @@ def test_play_start_endpoint_GET(
         status=SessionStatusStates.ACTIVE.value, user_id=user.id
     )
     game: GameFactory = GameFactory.create(
-        session_id=user_session.id,
-        user_id=user.id,
-        status=GameStatus.IN_PROGRESS.value
+        session_id=user_session.id, user_id=user.id, status=GameStatus.IN_PROGRESS.value
     )
     session_status: SessionStatus = SessionStatus(True, {"test": "test"}, 200)
-    mocker.patch("use_cases.use_case.UserUseCase.check_session_status", return_value=session_status)
-    mocker.patch("use_cases.use_case.UserUseCase.check_game_status", return_value=(False, "test"))
+    mocker.patch(
+        "use_cases.use_case.UserUseCase.check_session_status",
+        return_value=session_status,
+    )
+    mocker.patch(
+        "use_cases.use_case.UserUseCase.check_game_status", return_value=(False, "test")
+    )
 
     expected_response: dict = {
         "actual_board": game.board,
         "player_sign": game.symbol,
     }
 
-    mocker.patch("use_cases.use_case.UserUseCase.lets_play_GET", return_value=(expected_response, 200))
-    response: Response = client.get(f"/session/1/game/1", json={}, headers=jwt_token_headers)  # noqa
+    mocker.patch(
+        "use_cases.use_case.UserUseCase.lets_play_GET",
+        return_value=(expected_response, 200),
+    )
+    response: Response = client.get(  # noqa
+        "/session/1/game/1", json={}, headers=jwt_token_headers
+    )
 
     assert response.status_code == 200
     assert response.json == expected_response
 
 
 # def test_play_start_endpoint_POST(
-#         client: FlaskClient, jwt_token_headers: dict, mocker: "MockFixture", mock_session_status_response
+#         client: FlaskClient,
+#         jwt_token_headers: dict,
+#         mocker: "MockFixture",
+#         mock_session_status_response
 # ) -> None:
 #     """Test for play start endpoint. GET method should return board details"""
 #     user: UserFactory = UserFactory.create()
@@ -501,15 +528,23 @@ def test_play_start_endpoint_GET(
 #         status=GameStatus.IN_PROGRESS.value
 #     )
 #     session_status: SessionStatus = SessionStatus(True, {"test": "test"}, 200)
-#     mocker.patch("use_cases.use_case.UserUseCase.check_session_status", return_value=session_status)
+#     mocker.patch(
+#     "use_cases.use_case.UserUseCase.check_session_status",
+#     return_value=session_status
+#     )
 #
 #     expected_response: dict = {
 #         "actual board": game.board,
 #         "player sign": game.symbol,
 #     }
 #
-#     mocker.patch("use_cases.use_case.UserUseCase.lets_play_GET", return_value=(expected_response, 200))
-#     response: Response = client.get(f"/session/1/game/1", json={}, headers=jwt_token_headers)  # noqa
+#     mocker.patch(
+#     "use_cases.use_case.UserUseCase.lets_play_GET",
+#     return_value=(expected_response, 200)
+#     )
+#     response: Response = client.get(  # noqa
+#     f"/session/1/game/1", json={}, headers=jwt_token_headers
+#     )
 #
 #     assert response.status_code == 200
 #     assert response.json == expected_response
