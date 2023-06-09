@@ -1,0 +1,146 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-gap: 5px;
+  width: 300px;
+  margin-top: 20px;
+}
+
+.container{
+  display: flex;
+  justify-content: center;
+}
+
+.cell {
+  width: 100px;
+  height: 100px;
+  border: 1px solid black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+  cursor: pointer;
+}
+
+h1 {
+  text-align: center;
+}
+
+/* Button styles */
+.status-button {
+  display: block;
+  width: 200px;
+  height: 60px;
+  font-size: 24px;
+  margin: 20px auto;
+  border: none;
+  border-radius: 8px;
+  cursor: not-allowed;
+}
+
+.status-button.hidden {
+  display: none;
+}
+
+.status-button.won {
+  background-color: green;
+  color: white;
+}
+
+.status-button.lost {
+  background-color: red;
+  color: white;
+}
+
+.new-game-button{
+  display: block;
+  width: 200px;
+  height: 60px;
+  font-size: 24px;
+  margin: 20px auto;
+  border: none;
+  border-radius: 8px;
+  background-color: blue;
+  color: white;
+  cursor: pointer;
+}
+
+.no-winner {
+    display: block;
+    width: 200px;
+    height: 60px;
+    font-size: 24px;
+    margin: 20px auto;
+    border: none;
+    border-radius: 8px;
+    background-color: grey;
+    color: white;
+  }
+
+.hidden {
+  display: none;
+}
+
+.credits-container {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.credits {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.scores, .scores-columns{
+  display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 60%;
+}
+
+.score-container, .scores-columns{
+  display: flex;
+  justify-content: space-between;
+}
+
+.scores-columns {
+  flex-direction: row;
+}
+
+.scores-columns div {
+  width: 100%;
+  display: flex;
+  margin-left: 10px;
+}
+
+.score-container div{
+  padding: 10px;
+  width: 33.33%;
+}
+
+.user-info-container {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.user-sign {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.sing-container{
+  width: 10%;
+  border: grey 1px solid;
+  margin-top: 1rem;
+  background-color: #f2f2f2;
+  padding: 1rem;
+  border-radius: 0.3rem;
+  display: flex;
+  justify-content: center;
+}
+
+.sing-container span{
+  padding: 5px;
+}

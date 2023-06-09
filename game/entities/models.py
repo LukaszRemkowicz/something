@@ -1,9 +1,10 @@
 import random
+from datetime import datetime
 
-from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Column, ForeignKey, CheckConstraint, desc
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy_json import mutable_json_type
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, object_mapper, RelationshipProperty
 
 from flask_sqlalchemy import SQLAlchemy
 
@@ -38,11 +39,17 @@ class User(db.Model, BaseMixin):
     email = Column(db.String, unique=True)
     credits = Column(db.Integer, default=10)
 
+    __table_args__ = (
+        CheckConstraint(credits >= 0, name='positive_credits_check'),
+    )
+
 
 class UserSession(db.Model, BaseMixin):
     __tablename__ = 'session'
     id = Column(db.Integer, primary_key=True)
-    score = Column(db.Integer, doc="User score per session. One point per win.")
+    score = Column(
+        db.Integer, doc="User score per session. One point per win.", default=0
+    )
     user_id = Column(db.Integer, ForeignKey('users.id', ondelete='CASCADE'))
     user = relationship("User", backref="UserSession")
     status = Column(
@@ -50,7 +57,7 @@ class UserSession(db.Model, BaseMixin):
         default=SessionStatusStates.ACTIVE.value,
         doc="Session status. Active or Finished."
     )
-    created_at = Column(db.DateTime, default=db.func.now())
+    created_at = Column(db.DateTime, default=datetime.now)
     ended_at = Column(db.DateTime, nullable=True)
 
 
@@ -74,13 +81,18 @@ class Game(db.Model, BaseMixin):
         nullable=True,
         doc="Game winner. True if user won, False if user lost, None if draw."
     )
-    session_id = db.Column(db.Integer, ForeignKey('session.id', ondelete='CASCADE'))
+    session_id = db.Column(
+        db.Integer,
+        ForeignKey('session.id', ondelete='SET NULL'),
+        nullable=True
+    )
     status = Column(
         db.String,
         default=GameStatus.NOT_STARTED.value,
         doc="Session status. Active or Finished."
     )
+    user = relationship('User')
+    session = relationship('UserSession')
 
 
 models_union = User | UserSession | Game
-

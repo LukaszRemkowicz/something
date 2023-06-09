@@ -476,8 +476,8 @@ def test_play_start_endpoint_GET(
     mocker.patch("use_cases.use_case.UserUseCase.check_game_status", return_value=(False, "test"))
 
     expected_response: dict = {
-        "actual board": game.board,
-        "player sign": game.symbol,
+        "actual_board": game.board,
+        "player_sign": game.symbol,
     }
 
     mocker.patch("use_cases.use_case.UserUseCase.lets_play_GET", return_value=(expected_response, 200))

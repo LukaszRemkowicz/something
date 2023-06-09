@@ -1,5 +1,5 @@
 import abc
-from typing import Union, Type, Optional, Iterable
+from typing import Union, Type, Optional, Iterable, List
 
 from entities.entites import UserListPydantic, UserPydantic, UserSessionPydantic, UserSessionListPydantic, GamePydantic, \
     GameListPydantic
@@ -109,8 +109,39 @@ class UserSessionDBRepo(BaseRepo):
             return UserSessionPydantic(**instance.__dict__)
         return None
 
-    def all(self):
-        ...
+    def all(self, desc=False) -> Iterable:
+        if desc:
+            filter_res: Iterable = self.model.query.order_by(self.model.ended_at.desc()).all()
+        else:
+            filter_res: Iterable = self.model.query.all()
+        return filter_res
+
+    @staticmethod
+    def time_played(start_time, end_time):
+        if end_time:
+            minutes: float = int((end_time - start_time).total_seconds() / 60)
+            result: str = f'{minutes} minutes'
+            if not minutes:
+                result: str = f'{int((end_time - start_time).total_seconds())} seconds'
+            return result
+        else:
+            return "In progress"
+
+    @staticmethod
+    def anonymize_email(email):
+        return email[:3] + "****" + email[-3:]
+
+    def get_score_data(self):
+        data: List[dict] = [
+            {
+                "date": obj.ended_at.strftime("%d-%m-%Y") if obj.ended_at else "Unknown",
+                "score": obj.score,
+                "user": self.anonymize_email(obj.user.email),
+                "time_played": self.time_played(obj.created_at, obj.ended_at)
+            }
+            for obj in self.all(desc=True)
+        ]
+        return data
 
 
 class GameDBRepo(BaseRepo):

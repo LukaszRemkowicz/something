@@ -33,8 +33,19 @@ class GamePydantic(BaseModel):
     winner: Optional[int]
     session_id: int
     status: str
+    user: Optional[UserPydantic]
 
 
 class GameListPydantic(BaseModel):
     __root__: list[GamePydantic]
+
+
+class ScorePydantic(BaseModel):
+    score: str
+    user_name: str
+    time_played: int | str
+
+
+class ScoreListPydantic(BaseModel):
+    __root__: list[ScorePydantic]
 

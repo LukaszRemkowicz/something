@@ -157,25 +157,37 @@ def play_start(session_id: int, board_id: int) -> Tuple[Response, int]:
         return jsonify(response), status_code
 
 
-# @app.route('/session_view/<int:session_id>/game/<int:board_id>', methods=['GET', "POST"])
-# def index(session_id, board_id):
-#     return render_template('index.html')
-#
-#
-# @app.route('/login_view')
-# def login_view():
-#     return render_template('login.html')
-#
-#
-# @app.route('/session_view')
-# def session_view():
-#     token = request.args.get('token')
-#     try:
-#         payload = decode_token(token, app.config['SECRET_KEY'])
-#         current_user = payload['sub']
-#     except:
-#         current_user = None
-#
-#     if token and current_user:
-#         return render_template('session.html')
-#     return render_template('login.html')
+@app.route('/high_scores', methods=['GET'])
+def high_scores() -> Tuple[Response, int]:
+    """Returns high scores."""
+    response: str
+    status_code: int
+    response, status_code = player.get_high_scores()
+    return jsonify(response), status_code
+
+
+@app.route('/session_view/<int:session_id>/game/<int:board_id>', methods=['GET', "POST"])
+def index(session_id, board_id):
+    return render_template('index.html')
+
+
+@app.route('/login_view')
+def login_view():
+    return render_template('login.html')
+
+
+@app.route('/session_view')
+def session_view():
+
+    token = request.args.get('token')
+    try:
+        payload = decode_token(token, app.config['SECRET_KEY'])
+        current_user = payload['sub']
+    except:
+        current_user = None
+
+    if token and current_user:
+        return render_template('session.html')
+    return render_template('login.html')
+
+
