@@ -1,6 +1,6 @@
 import random
 from datetime import datetime
-from typing import List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from entities.entites import (
     GameListPydantic,
@@ -49,18 +49,24 @@ class UserUseCase:
         """Update user account."""
         user: UserPydantic | None = self.get_user(id=user_id)
         message: str
+        credits_num: int = kwargs.get("credits")
+
+        if credits_num and credits_num > 10:
+            message = "Invalid credits count. Should be less than 10"
+            return {"error": message}, 403
 
         if user:
-            if kwargs.get("credits") and user.credits != 0:
+            if credits_num and user.credits != 0:
                 message = "Invalid credits count. Should be 0 before updating"
-                return {"message": message}, 400
+                return {"error": message}, 403
+
             result: UserPydantic | None = self.db_repo.update_fields(obj=user, **kwargs)
             if result:
                 result_dict: dict = result.dict(exclude={"password"})
                 result_dict.update({"message": "Account updated"})
                 return result_dict, 200
 
-        return {"message": "User not found"}, 404
+        return {"error": "User not found"}, 404
 
     def start_session(self, user_id: int) -> Tuple[dict, int]:
         """
@@ -122,12 +128,15 @@ class UserUseCase:
         """
         user: UserPydantic | None = self.get_user(id=user_id)
 
+        if not user:
+            return {"error": "User not found"}, 404
+
         # Check if there is active session with given id
         user_session: UserSessionListPydantic = self.user_session_repo.filter(
             user_id=user.id, status=SessionStatusStates.ACTIVE.value
         )
         if not user_session or not user_session.__root__:
-            return {"message": "No active session found"}, 400
+            return {"error": "No active session found"}, 400
 
         session_obj: UserSessionPydantic = user_session.__root__[0]
 
@@ -172,6 +181,7 @@ class UserUseCase:
     def get_session_object(
         self, session_id: int, user_id: int
     ) -> UserSessionListPydantic | None:
+        """Get session object by id and user id."""
         session: UserSessionListPydantic | None = self.user_session_repo.filter(
             id=session_id, user_id=user_id
         )
@@ -181,24 +191,42 @@ class UserUseCase:
     def validate_field_indexes(fields: dict) -> Tuple[list, dict]:
         """Validate field indexes. Check if they are in range 1-3."""
         errors: dict = {}
+        check_range: bool = True
+        row: int = fields.get("row")
+        col: int = fields.get("col")
 
-        row = fields.get("row")
-        col = fields.get("col")
+        try:
+            row = int(fields.get("row"))
+        except (TypeError, ValueError):
+            check_range = False
+            errors.update({"row": "Should be integer, not object or string"})
 
-        if row > 3 or row < 0:
-            errors.update({"row": "The number is wrong. Should be between 1 and 3"})
-        if col > 3 or col < 0:
-            errors.update({"col": "The number is wrong. Should be between 1 and 3"})
+        try:
+            col = int(fields.get("col"))
+        except (TypeError, ValueError):
+            check_range = False
+            errors.update({"col": "Should be integer, not object or string"})
+
+        if check_range:
+            if row > 3 or row < 0:
+                errors.update({"row": "The number is wrong. Should be between 1 and 3"})
+            if col > 3 or col < 0:
+                errors.update({"col": "The number is wrong. Should be between 1 and 3"})
 
         return [row, col], errors
 
     def _player_play(
         self, data: dict, user_game: GamePydantic
     ) -> Tuple[List[List[str | None]], int] | Tuple[dict, int]:
+        """
+        Validate fields, make move on board. Check if move is possible.
+        Return updated board.
+        """
+
         row = data.get("row")
         col = data.get("col")
         if not row or not col:
-            return {"message": "Invalid request. You didnt sent row and col"}, 400
+            return {"error": "Invalid request. You didnt sent row and col"}, 400
         _, errors = self.validate_field_indexes(data)
         if errors:
             return {"status": "error", "error list": errors}, 400
@@ -223,7 +251,8 @@ class UserUseCase:
     def random_play(
         self, user_game: GamePydantic, session_id: int, user_id: int
     ) -> Tuple[List[List[str | None]], int] | Tuple[dict, int]:
-        """Make random play."""
+        """Make random play for second player."""
+
         user: UserPydantic | None = self.get_user(id=user_id)
 
         row, col = self.get_random_field_indexes()
@@ -232,6 +261,9 @@ class UserUseCase:
         board_list: list = list(user_game.board.values())[0]
 
         user_board: GridManager = self.grid_manager(board_list)
+
+        if user_board.is_full():
+            return {"error": "Board is full. Game over"}, 400
 
         while not user_board.is_move_possible(row - 1, col - 1):
             row, col = self.get_random_field_indexes()
@@ -252,11 +284,16 @@ class UserUseCase:
         }, 200
 
     def lets_play_POST(self, session_id: int, user_id: int, game_id: int, data: dict):
+        """
+        Make move on board. Check if move is possible. Return updated board.
+        Basically this is a main function for playing.
+        """
+
         user_game: GameListPydantic | None = self.game_db_repo.filter(
             user_id=user_id, session_id=session_id, id=game_id
         )
         if not user_game or not user_game.__root__:
-            return {"message": "Game not found"}, 404
+            return {"error": "Game not found"}, 404
 
         user_game_obj: GamePydantic = user_game.__root__[0]
 
@@ -293,6 +330,8 @@ class UserUseCase:
         return row, col
 
     def check_game_status(self, session_id: int, user_id: int, game_id: int):
+        """Check if game is finished. Return winner if exists."""
+
         user_game: GameListPydantic | None = self.game_db_repo.filter(
             user_id=user_id, session_id=session_id, id=game_id
         )
@@ -325,7 +364,7 @@ class UserUseCase:
                 ):
                     user.credits += PlayCredits.WIN.value
                     self.db_repo.update_fields(obj=user, credits=user.credits)
-                    session: UserSessionListPydantic = self.get_session_obj(
+                    session: UserSessionListPydantic = self.get_session_object(
                         user_id=user_id, session_id=session_id
                     )
                     if session_obj := session.__root__[0]:
@@ -365,13 +404,9 @@ class UserUseCase:
                     obj=user_game_obj,
                     winner=winner_res,
                     status=GameStatus.FINISHED.value,
-                    ended_at=datetime.now(),
                 )
 
         return is_finished, message
-
-    def get_session_obj(self, user_id: int, session_id: int) -> UserSessionListPydantic:
-        return self.get_session_object(user_id=user_id, session_id=session_id)
 
     def update_session_status(self, session_id: int, user_id: int):
         """
@@ -380,14 +415,16 @@ class UserUseCase:
         that play game cost 3 credits, if user lost, he will not be able to play again
         (he won't earn additional credits).
         """
+
         user: UserPydantic | None = self.get_user(id=user_id)
-        session: UserSessionListPydantic = self.get_session_obj(
+        session: UserSessionListPydantic = self.get_session_object(
             user_id=user_id, session_id=session_id
         )
 
         self.user_session_repo.update_fields(
             obj=session.__root__[0], status=SessionStatusStates.FINISHED.value
         )
+
         if user.credits < PlayCredits.PLAY.value:
             session.__root__[0].status = SessionStatusStates.FINISHED.value
             self.user_session_repo.update_fields(
@@ -397,30 +434,34 @@ class UserUseCase:
             )
 
     def lets_play_GET(self, user_id: int, session_id: int, game_id: int):
+        """Get game status."""
+
         user: UserPydantic | None = self.get_user(id=user_id)
         game_instance: GameListPydantic | None = self.game_db_repo.filter(
             user_id=user_id, session_id=session_id, id=game_id
         )
         if not game_instance or not game_instance.__root__:
-            return {"message": "Game not found"}, 404
+            return {"error": "Game not found"}, 404
 
         board_list: list = list(game_instance.__root__[0].board.values())[0]
         result: dict = {
             "actual_board": self.grid_manager(board_list).get_board(),
-            "player_sign": game_instance.__root__[0].symbol,
-            "game": game_instance.__root__[0].id,
-            "session": game_instance.__root__[0].session_id,
+            "player_sign": (game_obj := game_instance.__root__[0]).symbol,
+            "game": game_obj.id,
+            "session": game_obj.session_id,
             "credits": user.credits,
         }
         return result, 200
 
     def check_session_status(self, session_id: int, user_id: int):
+        """Check session status. Return SessionStatus object"""
+
         session: UserSessionListPydantic | None = self.get_session_object(
             session_id, user_id
         )
         if not session:
             return SessionStatus(
-                False, {"message": "Game session not found for requested user"}, 404
+                False, {"error": "Game session not found for requested user"}, 404
             )
         if (
             session
@@ -431,6 +472,36 @@ class UserUseCase:
 
         return SessionStatus(True, session.dict(), 200)
 
+    @staticmethod
+    def time_played(start_time: datetime, end_time: Optional[datetime]) -> str:
+        """Calculate time played in minutes or seconds"""
+        if end_time:
+            result: str
+            minutes: float = int((end_time - start_time).total_seconds() / 60)
+            result = f"{minutes} minutes"
+            if not minutes:
+                result = f"{int((end_time - start_time).total_seconds())} seconds"
+            return result
+        else:
+            return "In progress"
+
+    @staticmethod
+    def anonymize_email(email):
+        """Anonymize email address"""
+        return email[:3] + "****" + email[-3:]
+
     def get_high_scores(self):
-        games = self.user_session_repo.get_score_data()
-        return games, 200
+        """Get high scores for all users for today"""
+        data: List[Dict[str, Any]] = [
+            {
+                "date": obj.ended_at.strftime("%d-%m-%Y")
+                if obj.ended_at
+                else "Unknown",
+                "score": obj.score,
+                "user": self.anonymize_email(obj.user.email),
+                "time_played": self.time_played(obj.created_at, obj.ended_at),
+            }
+            for obj in self.user_session_repo.all(desc=True)
+            if obj.ended_at.date() == datetime.now().date()
+        ]
+        return data, 200
