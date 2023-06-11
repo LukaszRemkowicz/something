@@ -1300,9 +1300,11 @@ def test_get_high_scores_method(use_case: UserUseCase, mocker: "MockerFixture") 
     """Test use_case.get_high_scores method. Expect to return high scores"""
 
     user_session: UserSessionFactory = UserSessionFactory.create(score=10)
+    user_session.created_at = datetime.now()
+    user_session.ended_at = datetime.now() + timedelta(minutes=10)
 
     mocker.patch("repos.db_repo.UserSessionDBRepo.all", return_value=[user_session])
-    time_diff: timedelta = user_session.created_at - user_session.ended_at
+    time_diff: timedelta = user_session.ended_at - user_session.created_at
 
     result: str
     minutes: float = int(time_diff.total_seconds() / 60)
@@ -1316,7 +1318,7 @@ def test_get_high_scores_method(use_case: UserUseCase, mocker: "MockerFixture") 
     response, status_code = use_case.get_high_scores()
     expected_result: List[Dict[str, str]] = [
         {
-            "date": user_session.created_at.strftime("%d-%m-%Y"),
+            "date": user_session.ended_at.strftime("%d-%m-%Y"),
             "score": user_session.score,
             "user": user_session.user.email[:3] + "****" + user_session.user.email[-3:],
             "time_played": result,

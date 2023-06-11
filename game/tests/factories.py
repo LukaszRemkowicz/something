@@ -26,10 +26,10 @@ class UserSessionFactory(factory.Factory):
     status: str = SessionStatusStates.NEW.value
     created_at: datetime = datetime.datetime.strptime(
         "2021-09-01 00:00:00", "%Y-%m-%d %H:%M:%S"
-    ).date()
+    )
     ended_at: datetime = datetime.datetime.strptime(
         "2021-09-01 00:00:10", "%Y-%m-%d %H:%M:%S"
-    ).date()
+    )
     user: User = factory.SubFactory(UserFactory)
 
     class Meta:

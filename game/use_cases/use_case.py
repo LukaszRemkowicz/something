@@ -492,7 +492,6 @@ class UserUseCase:
 
     def get_high_scores(self):
         """Get high scores for all users for today"""
-
         data: List[Dict[str, Any]] = [
             {
                 "date": obj.ended_at.strftime("%d-%m-%Y")
