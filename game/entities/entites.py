@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 
 from pydantic import BaseModel
@@ -19,6 +20,7 @@ class UserSessionPydantic(BaseModel):
     score: Optional[int]
     user_id: int
     status: str
+    ended_at: Optional[date] = None
 
 
 class UserSessionListPydantic(BaseModel):
@@ -33,7 +35,6 @@ class GamePydantic(BaseModel):
     winner: Optional[int]
     session_id: int
     status: str
-    user: Optional[UserPydantic]
 
 
 class GameListPydantic(BaseModel):

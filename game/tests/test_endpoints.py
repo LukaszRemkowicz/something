@@ -1,12 +1,11 @@
 from copy import deepcopy
 from unittest.mock import patch
 
+from entities.entites import GameListPydantic, GamePydantic, UserSessionPydantic
+from entities.types import GameStatus, SessionStatus, SessionStatusStates
 from flask import Response
 from flask.testing import FlaskClient
 from pytest_mock import MockFixture
-
-from entities.entites import GameListPydantic, GamePydantic, UserSessionPydantic
-from entities.types import GameStatus, SessionStatus, SessionStatusStates
 from settings import PlayCredits
 from tests.factories import GameFactory, UserFactory, UserSessionFactory
 from tests.utils import user2pydantic
@@ -177,9 +176,9 @@ def test_account_update_credits_count_invalid(
     )
     data_response: dict = response.json
 
-    assert response.status_code == 400
+    assert response.status_code == 403
     assert (
-        data_response.pop("message")
+        data_response.pop("error")
         == "Invalid credits count. Should be 0 before updating"
     )
 
@@ -195,7 +194,7 @@ def test_account_update_user_not_found(
     data_response: dict = response.json
 
     assert response.status_code == 404
-    assert data_response.pop("message") == "User not found"
+    assert data_response.pop("error") == "User not found"
 
 
 def test_session_endpoint_not_allowed_methods(
@@ -318,7 +317,7 @@ def test_new_game_endpoint_no_active_session(
     data_response: dict = response.json
 
     assert response.status_code == 400
-    assert data_response.get("message") == "No active session found"
+    assert data_response.get("error") == "No active session found"
 
 
 def test_new_game_endpoint_game_already_started(

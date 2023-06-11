@@ -23,6 +23,12 @@ class PlayMixin:
                     free_spots.append((row, col))
         return free_spots
 
+    def is_full(self) -> bool:
+        """Check if the board is full."""
+        if len(self.find_free_spots()) == 0:
+            return True
+        return False
+
     def check_game_state(self):
         """
         Check if the game has ended in a draw. Returns True if the game has ended, and
@@ -86,7 +92,7 @@ class GridManager(PlayMixin):
 
     def set_field(self, row, col, value):
         """Set a field on the game board."""
-        self._fields[col][row] = value
+        self._fields[row][col] = value
 
     def get_field(self, row, col) -> str | None:
         """Get a field from the game board."""

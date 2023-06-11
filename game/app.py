@@ -1,6 +1,9 @@
 from datetime import timedelta
 from typing import Optional, Tuple
 
+from entities.entites import UserPydantic
+from entities.models import db
+from entities.types import SessionStatus
 from flask import Flask, Response, jsonify, render_template, request
 from flask_api import status
 from flask_cors import CORS
@@ -11,10 +14,6 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
-
-from entities.entites import UserPydantic
-from entities.models import db
-from entities.types import SessionStatus
 from repos.db_repo import GameDBRepo, UserDBRepo, UserSessionDBRepo
 from settings import get_db_url, settings
 from use_cases.use_case import UserUseCase

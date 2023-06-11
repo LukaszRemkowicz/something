@@ -1,5 +1,5 @@
 import abc
-from typing import Iterable, List, Optional, Type, Union
+from typing import Iterable, Optional, Type, Union
 
 from entities.entites import (
     GameListPydantic,
@@ -60,7 +60,7 @@ class UserDBRepo(BaseRepo):
         return UserPydantic(**user.__root__[0].__dict__)
 
     def save(self, obj):
-        return obj.save()
+        obj.save()
 
     def update_fields(self, obj: UserPydantic, **kwargs) -> UserPydantic | None:
         instance: User | None = self.model.query.filter_by(id=obj.id).first()
@@ -76,7 +76,7 @@ class UserDBRepo(BaseRepo):
         return None
 
     def all(self):
-        return self.model.all()
+        ...
 
 
 class UserSessionDBRepo(BaseRepo):
@@ -93,13 +93,13 @@ class UserSessionDBRepo(BaseRepo):
 
     def create(self, **kwargs) -> UserSessionPydantic:
         self.model.create(**kwargs)
-        user_session: Optional[UserSessionListPydantic] = self.filter(
-            status=SessionStatusStates.ACTIVE.value, **kwargs
-        )
+        if not kwargs.get("status"):
+            kwargs["status"] = SessionStatusStates.ACTIVE.value
+        user_session: Optional[UserSessionListPydantic] = self.filter(**kwargs)
         return UserSessionPydantic(**user_session.__root__[0].__dict__)
 
-    def save(self, obj):
-        return obj.save()
+    def save(self, obj) -> None:
+        obj.save()
 
     def update_fields(
         self, obj: UserSessionPydantic, **kwargs
@@ -124,35 +124,6 @@ class UserSessionDBRepo(BaseRepo):
         else:
             filter_res: Iterable = self.model.query.all()
         return filter_res
-
-    @staticmethod
-    def time_played(start_time, end_time):
-        if end_time:
-            minutes: float = int((end_time - start_time).total_seconds() / 60)
-            result: str = f"{minutes} minutes"
-            if not minutes:
-                result: str = f"{int((end_time - start_time).total_seconds())} seconds"
-            return result
-        else:
-            return "In progress"
-
-    @staticmethod
-    def anonymize_email(email):
-        return email[:3] + "****" + email[-3:]
-
-    def get_score_data(self):
-        data: List[dict] = [
-            {
-                "date": obj.ended_at.strftime("%d-%m-%Y")
-                if obj.ended_at
-                else "Unknown",
-                "score": obj.score,
-                "user": self.anonymize_email(obj.user.email),
-                "time_played": self.time_played(obj.created_at, obj.ended_at),
-            }
-            for obj in self.all(desc=True)
-        ]
-        return data
 
 
 class GameDBRepo(BaseRepo):
@@ -181,7 +152,7 @@ class GameDBRepo(BaseRepo):
         return GamePydantic(**game.__root__[0].__dict__)
 
     def save(self, obj):
-        return obj.save()
+        obj.save()
 
     def update_fields(self, obj: GamePydantic, **kwargs) -> GamePydantic | None:
         instance: Game | None = self.model.query.filter_by(id=obj.id).first()

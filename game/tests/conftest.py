@@ -1,11 +1,14 @@
 import pytest
+from app import app as flask_app
+from entities.entites import GameListPydantic, UserPydantic, UserSessionListPydantic
+from entities.types import SessionStatus
 from flask import Response
 from flask.testing import FlaskClient
 from pytest_mock import MockFixture
-
-from app import app as flask_app
-from entities.types import SessionStatus
-from tests.factories import UserFactory
+from repos.db_repo import GameDBRepo, UserDBRepo, UserSessionDBRepo
+from tests.factories import GameFactory, UserFactory, UserSessionFactory
+from tests.utils import game2pydantic_list, user2pydantic, user_session2pydantic_list
+from use_cases.use_case import UserUseCase
 
 
 @pytest.fixture
@@ -35,3 +38,29 @@ def mock_session_status_response(mocker: "MockFixture"):
         "use_cases.use_case.UserUseCase.check_session_status",
         return_value=session_status,
     )
+
+
+@pytest.fixture
+def use_case():
+    """Return UserUseCase instance"""
+
+    return UserUseCase(
+        db_repo=UserDBRepo, user_session_repo=UserSessionDBRepo, game_db_repo=GameDBRepo
+    )
+
+
+@pytest.fixture
+def trio_objects_package():
+    """Return trio objects"""
+    user: UserFactory = UserFactory.create(credits=0)
+    user_pydantic: UserPydantic = user2pydantic(user)
+
+    user_session: UserSessionFactory = UserSessionFactory.create(user_id=user.id)
+    user_session_pydantic: UserSessionListPydantic = user_session2pydantic_list(
+        user_session
+    )
+
+    game: GameFactory = GameFactory.create(session_id=user_session.id)
+    game_pydantic_list: GameListPydantic = game2pydantic_list(game)
+
+    return user_pydantic, user_session_pydantic, game_pydantic_list

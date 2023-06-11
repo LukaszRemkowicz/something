@@ -1,13 +1,12 @@
 import random
 from datetime import datetime
 
+from entities.types import GameStatus, SessionStatusStates
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import CheckConstraint, Column, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy_json import mutable_json_type
-
-from entities.types import GameStatus, SessionStatusStates
 
 db: SQLAlchemy = SQLAlchemy()
 
